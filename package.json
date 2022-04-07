@@ -1,0 +1,11 @@
+{
+  "name": "test-task-tables-samvel-nikogosyan",
+  "version": "1.0.0",
+  "description": "Test Task for technical interview.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Samvel Nikogosyan",
+  "license": "ISC"
+}
