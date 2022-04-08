@@ -3,3 +3,35 @@
   padding: 0;
   box-sizing: border-box;
 }
+
+body {
+  display: grid;
+  place-items: center;
+  height: 100vh;
+  font-size: 1.5rem;
+}
+
+main {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 30px;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  width: 100%;
+  cursor: pointer;
+}
+
+input[type="number"] {
+  padding: 0.5rem;
+  margin: 0 auto;
+  width: 6rem;
+}
+
+@media (max-width: 850px) {
+  main {
+    flex-direction: column;
+  }
+}
