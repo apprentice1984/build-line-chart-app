@@ -15,7 +15,7 @@ main {
   display: flex;
   gap: 1rem;
   align-items: flex-start;
-  padding: 30px;
+  padding: 10px;
 }
 
 .btn {

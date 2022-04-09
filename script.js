@@ -5,18 +5,10 @@ const resultTable = document.getElementById('resultTable')
 const leftTable = document.getElementById('leftTable')
 const rightTable = document.getElementById('rightTable')
 
-//Навешивааем обработчики, которые будут обновлять  LS при вводе значений в поля
-let tables = [leftTable, rightTable]
+//Вешаем обработчики на поля таблицы - для случая, когда LS пустой
+handleTableInputs()
 
-for (let table of tables) {
-  table.querySelectorAll("input[type='number']").forEach((input) =>
-    input.addEventListener('input', (e) => {
-      updateLS()
-    })
-  )
-}
-
-//Инициализация таблиц значениями из LS, если locasstorage не пуст
+//Если locasstorage не пуст, то заполняем таблицы значениями из него
 if (
   localStorage.getItem('coords-left') ||
   localStorage.getItem('coords-right')
@@ -24,17 +16,8 @@ if (
   //Создаем таблицы на основе значений, хранящихся в LS
   createTables()
 
-  //Навешиваем обработчики на кнопки в строках таблицы
-  leftTable.querySelectorAll("input[type='number']").forEach((input) =>
-    input.addEventListener('input', (e) => {
-      updateLS()
-    })
-  )
-  rightTable.querySelectorAll("input[type='number']").forEach((input) =>
-    input.addEventListener('input', (e) => {
-      updateLS()
-    })
-  )
+  //Вешаем обработчики на новые поля, созданные при вызове ф-ии "createTables()"
+  handleTableInputs()
 }
 
 //Проходим по всем кнопкам для удаления строк и вешаем обработчики на них
@@ -46,6 +29,8 @@ deleteButtons.forEach((deleteButton) => {
 addButtons.forEach((addButton) => {
   addButton.addEventListener('click', (e) => {
     e.preventDefault()
+
+    //Создаем пустую строку и добавляем в таблицу
     let newRow = createNewRow()
     addButton.closest('tfoot').previousElementSibling.append(newRow)
 
@@ -53,37 +38,6 @@ addButtons.forEach((addButton) => {
     updateLS()
   })
 })
-
-//Функция для удаления строки из таблицы
-function deleteThisRow(e) {
-  e.preventDefault()
-
-  //Удаляем заданную строку из DOM
-  e.target.closest('tr').remove()
-
-  //Обновляем localstorage
-  updateLS()
-}
-
-//Функция для создания новой строки
-function createNewRow() {
-  let newRow = document.createElement('tr')
-  newRow.innerHTML = `
-              <td><input type="number" value="1" step="0.5" /></td>
-              <td><input type="number" value="1" step="0.5" /></td>
-              <td><button class="btn deleteBtn">Delete</button></td>`
-
-  //Вешаем обработчики на кнопку удаления строки
-  newRow.querySelector('.deleteBtn').addEventListener('click', deleteThisRow)
-  newRow.querySelectorAll("input[type='number']").forEach((input) =>
-    input.addEventListener('input', (e) => {
-      updateLS()
-    })
-  )
-
-  //Возвращаем новую строку
-  return newRow
-}
 
 //Обработчик для расчета значений финальной(результирующей) таблицы
 calculateButton.addEventListener('click', (e) => {
@@ -128,13 +82,25 @@ calculateButton.addEventListener('click', (e) => {
   }
 
   //Строим линейные графики для всех таблиц
-  let chart1 = new LineChart({ data: [] })
-  let chart2 = new LineChart({ data: [], canvas: 'canvas2' })
-  let chart3 = new LineChart({ data: [], canvas: 'canvas3' })
+  let chart1 = new LineChart({
+    data: [],
+    canvas: 'canvas1',
+    yAxisLabel: 'Table 1',
+  })
+  let chart2 = new LineChart({
+    data: [],
+    canvas: 'canvas2',
+    yAxisLabel: 'Table 2',
+  })
+  let chart3 = new LineChart({
+    data: [],
+    canvas: 'canvas3',
+    yAxisLabel: 'Results',
+  })
 
   let charts = [chart1, chart2, chart3]
 
-  //Здесь получаем значения для графиков и кладем их в переменные
+  //Здесь получаем значения для графиков и кладем их в переменные yCoords1-yCoords3
   let yCoords1 = localStorage
     .getItem('coords-left')
     .split(',')
@@ -148,95 +114,26 @@ calculateButton.addEventListener('click', (e) => {
   let yCoords3 = [...resultTable.querySelectorAll('input')].map(
     (item) => item.value
   )
-  yCoords3 = yCoords3.filter((item, idx) => idx % 2 !== 0)
+  yCoords3 = yCoords3.filter((_, idx) => idx % 2 !== 0)
 
   let yCoords = [yCoords1, yCoords2, yCoords3]
 
+  //для каждого графика запускаем его построение
   for (let i = 0; i < charts.length; i++) {
-    reset()
+    //закидываем данные из массива в "объект для построения линейного графика"
+    charts[i].populate(
+      yCoords[i].map((coordinate) => {
+        return { label: coordinate, value: coordinate }
+      })
+    )
 
     charts[i].start()
-
-    function append() {
-      charts[i].append([
-        { label: 'Rnd', value: 500 + Math.random() * 500, future: true },
-      ])
-    }
-
-    function restart() {
-      charts[i].restart()
-    }
-
-    function reset() {
-      charts[i].populate(
-        yCoords[i].map((item) => {
-          return { label: 'Y', value: item }
-        })
-      )
-    }
   }
 })
 
-//Функция обновления localstorage
-function updateLS() {
-  //Создаем 2 записи в LS - для левой и правой таблиц
-  localStorage.setItem('coords-left', getCoordsFromTables(leftTable))
-  localStorage.setItem('coords-right', getCoordsFromTables(rightTable))
-}
-
-//Собрать координаты из таблиц 1 и 2
-function getCoordsFromTables(table) {
-  let coordsArr = []
-
-  table.querySelectorAll("input[type='number']").forEach((input) => {
-    coordsArr.push(input.value)
-  })
-
-  return coordsArr
-}
-
-//Функция, которая создает таблицы на основе
-function createTables() {
-  leftTable.querySelector('tbody').innerHTML = ''
-  rightTable.querySelector('tbody').innerHTML = ''
-
-  let coordsLeft = localStorage.getItem('coords-left').split(',')
-  let coordsRight = localStorage.getItem('coords-right').split(',')
-
-  for (let i = 0; i < coordsLeft.length; ) {
-    let newRow = document.createElement('tr')
-    newRow.innerHTML = `
-              <td><input type="number" value="${
-                coordsLeft[i]
-              }" step="0.5" /></td>
-              <td><input type="number" value="${
-                coordsLeft[i + 1]
-              }" step="0.5" /></td>
-              <td><button class="btn deleteBtn">Delete</button></td>`
-    newRow.querySelector('.deleteBtn').addEventListener('click', deleteThisRow)
-    leftTable.querySelector('tbody').append(newRow)
-    i = i + 2
-  }
-
-  for (let i = 0; i < coordsRight.length; ) {
-    let newRow = document.createElement('tr')
-    newRow.innerHTML = `
-              <td><input type="number" value="${
-                coordsRight[i]
-              }" step="0.5" /></td>
-              <td><input type="number" value="${
-                coordsRight[i + 1]
-              }" step="0.5" /></td>
-              <td><button class="btn deleteBtn">Delete</button></td>`
-    newRow.querySelector('.deleteBtn').addEventListener('click', deleteThisRow)
-    rightTable.querySelector('tbody').append(newRow)
-    i = i + 2
-  }
-}
-
-// ЗДЕСЬ УЖЕ ИДЕТ РАБОТА С ПОСТРОЕНИЕМ ЛИНЕЙНОГО ГРАФИКА
-
-//Создаем объект для инициализации построения линейного графика
+// ОТСЮДА УЖЕ ИДЕТ РАБОТА С ПОСТРОЕНИЕМ ЛИНЕЙНОГО ГРАФИКА
+// ------------------------------------------------------------------------------------------------
+//Создаем объект/функцию для построения линейного графика
 const LineChart = function (options) {
   let data = options.data
   let canvas = document.getElementById(options.canvas ?? 'canvas1')
@@ -245,18 +142,16 @@ const LineChart = function (options) {
   let rendering = false,
     paddingX = 80,
     paddingY = 80,
-    width = 700,
-    height = 500,
-    progress = 0
+    width = 500,
+    height = 250,
+    progress = 100
 
   canvas.width = width
   canvas.height = height
 
   let maxValue, minValue
 
-  let y1 = 10,
-    y2 = 11,
-    y3 = 12
+  let y = 10
 
   format()
   render()
@@ -273,10 +168,12 @@ const LineChart = function (options) {
     data.forEach(function (point, i) {
       point.targetX =
         paddingX + (i / (data.length - 1)) * (width - paddingX * 2)
+
       point.targetY =
         paddingY +
         ((point.value - minValue) / (maxValue - minValue)) *
           (height - paddingY * 2)
+
       point.targetY = height - point.targetY
 
       if (force || (!point.x && !point.y)) {
@@ -293,20 +190,20 @@ const LineChart = function (options) {
       return
     }
 
-    context.font = '20px sans-serif'
+    context.font = '23px sans-serif'
     context.clearRect(0, 0, width, height)
 
     context.fillStyle = '#222'
-    context.fillRect(paddingX, y1, width - paddingX * 2, 1)
-    context.fillRect(paddingX, y2, width - paddingX * 2, 1)
-    context.fillRect(paddingX, y3, width - paddingX * 2, 1)
+    context.fillRect(paddingX, y, width - paddingX * 2, 1)
+    context.fillRect(paddingX, y, width - paddingX * 2, 1)
+    context.fillRect(paddingX, y, width - paddingX * 2, 1)
 
     if (options.yAxisLabel) {
       context.save()
       context.globalAlpha = progress
-      context.translate(paddingX - 15, height - paddingY - 10)
+      context.translate(paddingX - 20, height - paddingY - 10)
       context.rotate(-Math.PI / 2)
-      context.fillStyle = '#fff'
+      context.fillStyle = 'blue'
       context.fillText(options.yAxisLabel, 0, 0)
       context.restore()
     }
@@ -324,10 +221,10 @@ const LineChart = function (options) {
 
         let wordWidth = context.measureText(point.label).width
         context.globalAlpha = i === progressDots ? progressFragment : 1
-        context.fillStyle = point.future ? '#aaa' : '#fff'
-        context.fillText(point.label, point.x - wordWidth / 2, height - 22)
+        context.fillStyle = 'blue'
+        context.fillText(point.label, point.x - wordWidth / 2, height - 20)
 
-        if (i < progressDots && !point.future) {
+        if (i <= progressDots) {
           context.beginPath()
           context.arc(point.x, point.y, 8, 0, Math.PI * 2)
           context.fillStyle = '#1baee1'
@@ -341,7 +238,7 @@ const LineChart = function (options) {
     context.save()
     context.beginPath()
     context.strokeStyle = '#1baee1'
-    context.lineWidth = 4
+    context.lineWidth = 3
 
     let futureStarted = false
 
@@ -366,10 +263,6 @@ const LineChart = function (options) {
           context.beginPath()
           context.moveTo(px, py)
           context.strokeStyle = '#aaa'
-
-          if (typeof context.setLineDash === 'function') {
-            context.setLineDash([4, 8])
-          }
         }
 
         if (i === 0) {
@@ -392,23 +285,23 @@ const LineChart = function (options) {
     rendering = true
   }
 
-  this.stop = function () {
-    rendering = false
-    progress = 0
-    format(true)
-  }
+  // this.stop = function () {
+  //   rendering = false
+  //   progress = 0
+  //   format(true)
+  // }
 
-  this.restart = function () {
-    this.stop()
-    this.start()
-  }
+  // this.restart = function () {
+  //   this.stop()
+  //   this.start()
+  // }
 
-  this.append = function (points) {
-    progress -= points.length / data.length
-    data = data.concat(points)
+  // this.append = function (points) {
+  //   progress -= points.length / data.length
+  //   data = data.concat(points)
 
-    format()
-  }
+  //   format()
+  // }
 
   this.populate = function (points) {
     progress = 0
@@ -416,4 +309,105 @@ const LineChart = function (options) {
 
     format()
   }
+}
+
+//ЗДЕСЬ ИДУТ ВСЕ ВСПОМОГАТЕЛЬНЫЕ ФУНЦИИ ТИПА "Function Declaration"
+
+//Функция для обновления LS при изменении значений в полях таблицы
+function handleTableInputs() {
+  let tables = [leftTable, rightTable]
+
+  for (let table of tables) {
+    table.querySelectorAll("input[type='number']").forEach((input) =>
+      input.addEventListener('input', (e) => {
+        updateLS()
+      })
+    )
+  }
+}
+
+//Функция обновления localstorage
+function updateLS() {
+  //Создаем 2 записи в LS - для левой и правой таблиц
+  localStorage.setItem('coords-left', getCoordsFromTables(leftTable))
+  localStorage.setItem('coords-right', getCoordsFromTables(rightTable))
+}
+
+//Функция, которая собирает и возвращает координаты из таблиц 1 и 2
+function getCoordsFromTables(table) {
+  let coordsArr = []
+
+  table.querySelectorAll("input[type='number']").forEach((input) => {
+    coordsArr.push(input.value)
+  })
+
+  return coordsArr
+}
+
+//Функция, которая создает таблицы на основе данных из LS
+function createTables() {
+  //Очищаем все строки в обеих таблицах, чтоб заново их построить
+  leftTable.querySelector('tbody').innerHTML = ''
+  rightTable.querySelector('tbody').innerHTML = ''
+
+  //Достаем значения таблиц из LS и кладем в массивы. На основе этих значений будем заполнять таблицы
+  let coordsLeft = localStorage.getItem('coords-left').split(',')
+  let coordsRight = localStorage.getItem('coords-right').split(',')
+
+  let coordArray = [coordsLeft, coordsRight]
+
+  //Заполняем таблицы значениями из 2-х массивов в coordArray
+  coordArray.forEach((coordsItemArray, idx) => {
+    //В зависимости от индекса итерации, берем ссылку либо на правую, либо на левую таблицу
+    let tableLink = idx === 0 ? leftTable : rightTable
+
+    //Проходим в цикле и добавляем в таблицу значения строк
+    for (let i = 0; i < coordsItemArray.length; i = i + 2) {
+      let newRow = document.createElement('tr')
+      newRow.innerHTML = `
+              <td><input type="number" value="${
+                coordsItemArray[i]
+              }" step="0.5" /></td>
+              <td><input type="number" value="${
+                coordsItemArray[i + 1]
+              }" step="0.5" /></td>
+              <td><button class="btn deleteBtn">Delete</button></td>`
+      newRow
+        .querySelector('.deleteBtn')
+        .addEventListener('click', deleteThisRow)
+
+      tableLink.querySelector('tbody').append(newRow)
+    }
+  })
+}
+
+//Функция для удаления строки из таблицы
+function deleteThisRow(e) {
+  e.preventDefault()
+
+  //Удаляем заданную строку из DOM
+  e.target.closest('tr').remove()
+
+  //Обновляем localstorage
+  updateLS()
+}
+
+//Функция для создания новой строки
+function createNewRow() {
+  let newRow = document.createElement('tr')
+  newRow.innerHTML = `
+              <td><input type="number" value="1" step="0.5" /></td>
+              <td><input type="number" value="1" step="0.5" /></td>
+              <td><button class="btn deleteBtn">Delete</button></td>`
+
+  //Вешаем обработчики на кнопку удаления строки
+  newRow.querySelector('.deleteBtn').addEventListener('click', deleteThisRow)
+  newRow.querySelectorAll("input[type='number']").forEach((input) =>
+    input.addEventListener('input', (e) => {
+      updateLS()
+    })
+  )
+
+  //Возвращаем новую строку
+  return newRow
 }
