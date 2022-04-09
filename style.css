@@ -30,6 +30,12 @@ input[type="number"] {
   width: 6rem;
 }
 
+.lineGraphs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 @media (max-width: 850px) {
   main {
     flex-direction: column;
