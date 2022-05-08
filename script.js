@@ -285,24 +285,6 @@ const LineChart = function (options) {
     rendering = true
   }
 
-  // this.stop = function () {
-  //   rendering = false
-  //   progress = 0
-  //   format(true)
-  // }
-
-  // this.restart = function () {
-  //   this.stop()
-  //   this.start()
-  // }
-
-  // this.append = function (points) {
-  //   progress -= points.length / data.length
-  //   data = data.concat(points)
-
-  //   format()
-  // }
-
   this.populate = function (points) {
     progress = 0
     data = points
