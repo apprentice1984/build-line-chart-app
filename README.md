@@ -1,5 +1,6 @@
 # build-line-chart-app
 Simple app to build a line chart with points
+
 [Ссылка на сайт](https://build-line-chart-app.web.app)
 
 Порядок работы:
